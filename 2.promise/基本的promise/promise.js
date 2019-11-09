@@ -40,7 +40,7 @@ class Promise {
   }
 
   then(onfulfilled, onrejected) {
-    //onfulfilled 和 onrejected 是两个函数
+    //onfulfilled 和 onrejected 是两个函数  //console
     //目前有两个参数
     if (this.status === RESOLVED) {
       onfulfilled(this.value)

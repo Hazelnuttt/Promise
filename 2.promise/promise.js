@@ -67,22 +67,76 @@ class Promise {
     this.reason = undefined
     this.onResolvedCallbacks = [] //成功的回调数组
     this.onRejectedCallbacks = [] // 失败的回调数组
+    // let resolve = value => {
+    //   //屏蔽
+    //   if (this.status === PENDING) {
+    //     this.value = value
+    //     this.status = RESOLVED
+    //     //发布
+    //     this.onResolvedCallbacks.forEach(fn => fn()) //参数拿到了，不用管了
+    //   }
+    // }
     let resolve = value => {
-      //屏蔽
       if (this.status === PENDING) {
-        this.value = value
-        this.status = RESOLVED
-        //发布
-        this.onResolvedCallbacks.forEach(fn => fn()) //参数拿到了，不用管了
+        //屏蔽
+        if ((typeof value === 'object' && value != null) || typeof value === 'function') {
+          try {
+            //防止内部有err
+            let then = value.then
+            if (typeof then === 'function') {
+              then.call(
+                value,
+                y => {
+                  console.log('外层resolve,内层resolve')
+                  //等同于 x.then(y=>{},r=>{})
+                  resolve(y)
+                },
+                r => {
+                  //递归
+                  console.log('外层resolve,内层reject')
+                  reject(r)
+                }
+              )
+            }
+          } catch (e) {
+            reject(e)
+          }
+        } else {
+          this.value = value
+          this.status = RESOLVED
+        }
+        this.onResolvedCallbacks.forEach(fn => fn()) //异步；发布
       }
     }
     //失败
     let reject = reason => {
       //屏蔽
       if (this.status === PENDING) {
-        this.reason = reason
-        this.status = REJECTED
-        //发布
+        if ((typeof reason === 'object' && reason != null) || typeof reason === 'function') {
+          try {
+            let then = reason.then
+            if (typeof then === 'function') {
+              then.call(
+                reason,
+                y => {
+                  console.log('外层reject，内层resolve,不管怎么样还是reject')
+                  //等同于 x.then(y=>{},r=>{})
+                  reject(y)
+                },
+                r => {
+                  //递归
+                  console.log('外层reject，内层也是reject')
+                  reject(r)
+                }
+              )
+            }
+          } catch (e) {
+            reject(e)
+          }
+        } else {
+          this.reason = reason
+          this.status = REJECTED
+        }
         this.onRejectedCallbacks.forEach(fn => fn())
       }
     }
